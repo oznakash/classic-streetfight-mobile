@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Street Fight - Classic PC Game Characters</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: #000; display: flex; justify-content: center; align-items: center; min-height: 100vh; overflow: hidden; }
+        canvas { image-rendering: pixelated; }
+
+        #mobile-wall {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: #0a0a1a;
+            z-index: 9999;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 16px;
+            font-family: monospace;
+            color: #fff;
+            text-align: center;
+            padding: 32px;
+        }
+        #mobile-wall .title {
+            font-size: 32px;
+            font-weight: bold;
+            color: #ff3300;
+            text-shadow: 3px 3px 0 #000, 0 0 20px #ff330066;
+            letter-spacing: 3px;
+        }
+        #mobile-wall .subtitle {
+            font-size: 11px;
+            color: #886644;
+            letter-spacing: 2px;
+        }
+        #mobile-wall .char-stage {
+            position: relative;
+            width: 192px;
+            height: 192px;
+            margin: 8px 0;
+        }
+        #mobile-wall .char-sprite {
+            position: absolute;
+            inset: 0;
+            image-rendering: pixelated;
+            background-repeat: no-repeat;
+            opacity: 0;
+            transition: opacity 0.4s ease;
+        }
+        #mobile-wall .char-sprite.active { opacity: 1; }
+        #mobile-wall .char-name {
+            font-size: 18px;
+            font-weight: bold;
+            color: #fff;
+            text-shadow: 2px 2px 0 #000;
+            min-height: 24px;
+            transition: opacity 0.3s;
+        }
+        #mobile-wall .char-game {
+            font-size: 11px;
+            color: #666;
+            min-height: 16px;
+        }
+        #mobile-wall .msg {
+            font-size: 14px;
+            color: #aaa;
+            line-height: 1.7;
+            max-width: 300px;
+            margin-top: 8px;
+            border-top: 1px solid #222;
+            padding-top: 16px;
+        }
+        #mobile-wall .msg strong { color: #ff3300; }
+        #mobile-wall .dots {
+            display: flex;
+            gap: 8px;
+        }
+        #mobile-wall .dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #333;
+            transition: background 0.3s;
+        }
+        #mobile-wall .dot.active { background: #ff3300; }
+    </style>
+</head>
+<body>
+    <div id="mobile-wall">
+        <div class="title">STREET FIGHT</div>
+        <div class="subtitle">— CLASSIC PC GAME CHARACTERS —</div>
+
+        <div class="char-stage" id="char-stage"></div>
+        <div class="char-name" id="char-name"></div>
+        <div class="char-game" id="char-game"></div>
+        <div class="dots" id="char-dots"></div>
+
+        <div class="msg">
+            This game needs a <strong>keyboard</strong>.<br>
+            Open on desktop to play!
+        </div>
+    </div>
+
+    <script>
+        const isMobile = /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent)
+            || ('ontouchstart' in window && window.innerWidth < 1024);
+
+        if (isMobile) {
+            document.getElementById('mobile-wall').style.display = 'flex';
+
+            const chars = [
+                { key: 'doomguy', name: 'Doomguy',      game: 'Doom' },
+                { key: 'guybrush', name: 'Guybrush',    game: 'Monkey Island' },
+                { key: 'keen',    name: 'Cmdr Keen',    game: 'Commander Keen' },
+                { key: 'mario',   name: 'Mario',        game: 'Super Mario' },
+                { key: 'lara',    name: 'Lara Croft',   game: 'Tomb Raider' },
+                { key: 'prince',  name: 'Prince',       game: 'Prince of Persia' }
+            ];
+
+            // Sprite sheet: 512x384, 64x64 per frame. Display at 3x = 192x192 viewport
+            // Frame 0 = top-left. background-size = 512*3 x 384*3 = 1536x1152
+            const SCALE = 3;
+            const SHEET_W = 512 * SCALE, SHEET_H = 384 * SCALE;
+            const FRAME_W = 64 * SCALE, FRAME_H = 64 * SCALE;
+
+            const stage = document.getElementById('char-stage');
+            const nameEl = document.getElementById('char-name');
+            const gameEl = document.getElementById('char-game');
+            const dotsEl = document.getElementById('char-dots');
+
+            // Create sprite elements and dots
+            const sprites = chars.map((c, i) => {
+                const el = document.createElement('div');
+                el.className = 'char-sprite';
+                el.style.backgroundImage = `url('assets/sprites/${c.key}.png')`;
+                el.style.backgroundSize = `${SHEET_W}px ${SHEET_H}px`;
+                el.style.backgroundPosition = '0 0';
+                el.style.width = `${FRAME_W}px`;
+                el.style.height = `${FRAME_H}px`;
+                el.style.left = `${(192 - FRAME_W) / 2}px`;
+                el.style.top = `${(192 - FRAME_H) / 2}px`;
+                stage.appendChild(el);
+
+                const dot = document.createElement('div');
+                dot.className = 'dot';
+                dotsEl.appendChild(dot);
+
+                return { el, dot };
+            });
+
+            let current = 0;
+            let animFrame = 0;
+            let animTimer = null;
+
+            function showChar(idx) {
+                // Fade out old
+                sprites[current].el.classList.remove('active');
+                sprites[current].dot.classList.remove('active');
+
+                current = idx;
+                sprites[current].el.classList.add('active');
+                sprites[current].dot.classList.add('active');
+                nameEl.textContent = chars[current].name;
+                gameEl.textContent = chars[current].game;
+
+                // Animate idle frames (0-3) at ~6fps
+                animFrame = 0;
+                clearInterval(animTimer);
+                animTimer = setInterval(() => {
+                    animFrame = (animFrame + 1) % 4;
+                    sprites[current].el.style.backgroundPosition =
+                        `-${animFrame * FRAME_W}px 0px`;
+                }, 160);
+            }
+
+            showChar(0);
+            setInterval(() => showChar((current + 1) % chars.length), 2200);
+        }
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.90.0/dist/phaser.min.js"></script>
+    <script src="js/fighters/characters.js"></script>
+    <script src="js/systems/InputManager.js"></script>
+    <script src="js/systems/CombatSystem.js"></script>
+    <script src="js/fighters/Fighter.js"></script>
+    <script src="js/ui/HUD.js"></script>
+    <script src="js/scenes/BootScene.js"></script>
+    <script src="js/scenes/CharacterSelectScene.js"></script>
+    <script src="js/scenes/FightScene.js"></script>
+    <script src="js/scenes/VictoryScene.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>
