@@ -1,6 +1,14 @@
 # Street Fight - Classic PC Game Characters
 
+![Street Fight Banner](assets/readme/banner.png)
+
 A browser-based 2-player local multiplayer fighting game where iconic classic PC game characters battle it out. Built with Phaser 3 — no build tools required.
+
+## Screenshots
+
+![Character Select](assets/readme/character_select.png)
+
+![Gameplay](assets/readme/gameplay.png)
 
 ## Play
 
