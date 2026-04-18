@@ -11,12 +11,17 @@ class VictoryScene extends Phaser.Scene {
     }
 
     create() {
+        this.isMobile = !!window.IS_MOBILE;
+        if (window.showTouchControls) window.showTouchControls(false);
         this.cameras.main.setBackgroundColor('#0a0a1a');
 
         const char = CHARACTERS[this.characterKey];
+        const winnerLabel = this.isMobile
+            ? (this.winner === 1 ? 'YOU WIN!' : 'CPU WINS!')
+            : `PLAYER ${this.winner} WINS!`;
 
         // Winner text
-        const winText = this.add.text(400, 80, `PLAYER ${this.winner} WINS!`, {
+        const winText = this.add.text(400, 80, winnerLabel, {
             fontSize: '36px', fontFamily: 'monospace', color: '#ffcc00', fontStyle: 'bold',
             stroke: '#000', strokeThickness: 4
         }).setOrigin(0.5).setScale(0);
@@ -68,14 +73,19 @@ class VictoryScene extends Phaser.Scene {
             });
         }
 
-        // Instructions
-        this.add.text(400, 370, 'SPACE / ENTER  -  Character Select', {
-            fontSize: '13px', fontFamily: 'monospace', color: '#aaa'
-        }).setOrigin(0.5);
+        // Tap buttons (shown on both; keyboard also works on desktop)
+        this.makeButton(260, 385, 'REMATCH', 0xff3300, () => {
+            this.scene.start('FightScene', { p1: this.p1Char, p2: this.p2Char });
+        });
+        this.makeButton(540, 385, 'CHAR SELECT', 0x4488ff, () => {
+            this.scene.start('CharacterSelectScene');
+        });
 
-        this.add.text(400, 392, 'Z / F  -  Rematch', {
-            fontSize: '13px', fontFamily: 'monospace', color: '#aaa'
-        }).setOrigin(0.5);
+        if (!this.isMobile) {
+            this.add.text(400, 420, 'SPACE/ENTER: Select   •   Z/F: Rematch', {
+                fontSize: '11px', fontFamily: 'monospace', color: '#777'
+            }).setOrigin(0.5);
+        }
 
         // Input
         this.input.keyboard.addCapture(['SPACE', 'ENTER', 'Z', 'F']);
@@ -87,6 +97,22 @@ class VictoryScene extends Phaser.Scene {
 
         this.canProceed = false;
         this.time.delayedCall(1000, () => { this.canProceed = true; });
+    }
+
+    makeButton(x, y, label, color, onTap) {
+        const bg = this.add.rectangle(x, y, 200, 40, color)
+            .setStrokeStyle(2, 0xffffff)
+            .setInteractive({ useHandCursor: true });
+        const txt = this.add.text(x, y, label, {
+            fontSize: '14px', fontFamily: 'monospace', color: '#fff', fontStyle: 'bold'
+        }).setOrigin(0.5);
+        bg.on('pointerdown', () => {
+            if (!this.canProceed) return;
+            onTap();
+        });
+        bg.on('pointerover', () => bg.setScale(1.05));
+        bg.on('pointerout', () => bg.setScale(1));
+        return { bg, txt };
     }
 
     update() {

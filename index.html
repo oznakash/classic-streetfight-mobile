@@ -2,188 +2,335 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Street Fight - Classic PC Game Characters</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { background: #000; display: flex; justify-content: center; align-items: center; min-height: 100vh; overflow: hidden; }
-        canvas { image-rendering: pixelated; }
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        html, body { width: 100%; height: 100%; overflow: hidden; }
+        body {
+            background: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            touch-action: none;
+            -webkit-user-select: none;
+            user-select: none;
+            overscroll-behavior: none;
+        }
+        canvas { image-rendering: pixelated; display: block; }
 
-        #mobile-wall {
+        /* ===== TOUCH CONTROLS (mobile only) ===== */
+        #touch-controls {
+            display: none;
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 100;
+            font-family: monospace;
+        }
+        body.mobile.show-touch #touch-controls { display: block; }
+
+        .tc-btn {
+            position: absolute;
+            pointer-events: auto;
+            background: rgba(40, 40, 60, 0.55);
+            border: 2px solid rgba(255, 255, 255, 0.35);
+            color: #fff;
+            font-weight: bold;
+            font-family: monospace;
+            text-align: center;
+            touch-action: none;
+            user-select: none;
+            -webkit-user-select: none;
+            box-shadow: 0 0 12px rgba(0,0,0,0.5);
+            text-shadow: 1px 1px 0 #000;
+            transition: transform 0.05s, background 0.05s;
+        }
+        .tc-btn.pressed {
+            background: rgba(255, 170, 60, 0.85);
+            transform: scale(0.94);
+        }
+
+        /* D-pad bottom-left */
+        .dpad {
+            position: absolute;
+            left: 16px;
+            bottom: 16px;
+            width: 180px;
+            height: 180px;
+        }
+        .dpad .tc-btn {
+            width: 60px;
+            height: 60px;
+            border-radius: 10px;
+            font-size: 22px;
+            line-height: 56px;
+        }
+        .dpad .up    { left: 60px; top: 0; }
+        .dpad .left  { left: 0;    top: 60px; }
+        .dpad .right { left: 120px;top: 60px; }
+        .dpad .down  { left: 60px; top: 120px; }
+
+        /* Action buttons bottom-right */
+        .actions {
+            position: absolute;
+            right: 16px;
+            bottom: 16px;
+            width: 200px;
+            height: 200px;
+        }
+        .actions .tc-btn {
+            width: 72px;
+            height: 72px;
+            border-radius: 50%;
+            font-size: 14px;
+            line-height: 68px;
+        }
+        .actions .punch   { right: 110px; bottom: 80px;  background: rgba(80, 140, 220, 0.65); }
+        .actions .kick    { right: 20px;  bottom: 120px; background: rgba(220, 90, 90, 0.65); }
+        .actions .special { right: 20px;  bottom: 20px;  background: rgba(220, 180, 60, 0.65); color: #111; text-shadow: none; }
+        .actions .block   { right: 110px; bottom: 0;     background: rgba(120, 120, 140, 0.65); width: 64px; height: 50px; border-radius: 8px; line-height: 46px; font-size: 12px; }
+
+        /* Pause/menu */
+        .menu-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            width: 44px;
+            height: 30px;
+            border-radius: 6px;
+            font-size: 11px;
+            line-height: 26px;
+            background: rgba(0,0,0,0.55);
+        }
+
+        /* ===== Rotate prompt ===== */
+        #rotate-prompt {
             display: none;
             position: fixed;
             inset: 0;
             background: #0a0a1a;
-            z-index: 9999;
+            z-index: 200;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            gap: 16px;
-            font-family: monospace;
             color: #fff;
+            font-family: monospace;
             text-align: center;
             padding: 32px;
+            gap: 12px;
         }
-        #mobile-wall .title {
-            font-size: 32px;
-            font-weight: bold;
-            color: #ff3300;
-            text-shadow: 3px 3px 0 #000, 0 0 20px #ff330066;
-            letter-spacing: 3px;
-        }
-        #mobile-wall .subtitle {
-            font-size: 11px;
-            color: #886644;
-            letter-spacing: 2px;
-        }
-        #mobile-wall .char-stage {
-            position: relative;
-            width: 192px;
-            height: 192px;
-            margin: 8px 0;
-        }
-        #mobile-wall .char-sprite {
-            position: absolute;
+        body.mobile.portrait #rotate-prompt { display: flex; }
+        body.mobile.portrait #touch-controls { display: none; }
+        #rotate-prompt .icon { font-size: 48px; }
+        #rotate-prompt .title { font-size: 18px; color: #ff3300; letter-spacing: 2px; }
+        #rotate-prompt .msg { font-size: 13px; color: #aaa; max-width: 280px; line-height: 1.6; }
+
+        /* ===== How-to-play overlay ===== */
+        #howto {
+            display: none;
+            position: fixed;
             inset: 0;
-            image-rendering: pixelated;
-            background-repeat: no-repeat;
-            opacity: 0;
-            transition: opacity 0.4s ease;
-        }
-        #mobile-wall .char-sprite.active { opacity: 1; }
-        #mobile-wall .char-name {
-            font-size: 18px;
-            font-weight: bold;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 300;
+            justify-content: center;
+            align-items: center;
+            font-family: monospace;
             color: #fff;
-            text-shadow: 2px 2px 0 #000;
-            min-height: 24px;
-            transition: opacity 0.3s;
+            padding: 16px;
         }
-        #mobile-wall .char-game {
-            font-size: 11px;
-            color: #666;
-            min-height: 16px;
-        }
-        #mobile-wall .msg {
-            font-size: 14px;
-            color: #aaa;
+        #howto.show { display: flex; }
+        #howto .box {
+            background: #141428;
+            border: 2px solid #ff3300;
+            border-radius: 10px;
+            padding: 18px 22px;
+            max-width: 380px;
+            font-size: 12px;
             line-height: 1.7;
-            max-width: 300px;
-            margin-top: 8px;
-            border-top: 1px solid #222;
-            padding-top: 16px;
         }
-        #mobile-wall .msg strong { color: #ff3300; }
-        #mobile-wall .dots {
-            display: flex;
-            gap: 8px;
+        #howto h2 { color: #ff3300; margin-bottom: 8px; letter-spacing: 2px; font-size: 16px; }
+        #howto p { margin: 6px 0; }
+        #howto .row { display: flex; justify-content: space-between; gap: 12px; }
+        #howto .key { color: #ffcc00; font-weight: bold; }
+        #howto .close {
+            margin-top: 12px;
+            padding: 8px 14px;
+            background: #ff3300;
+            color: #fff;
+            border: 0;
+            border-radius: 6px;
+            font-family: monospace;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+            font-size: 13px;
         }
-        #mobile-wall .dot {
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            background: #333;
-            transition: background 0.3s;
-        }
-        #mobile-wall .dot.active { background: #ff3300; }
     </style>
 </head>
 <body>
-    <div id="mobile-wall">
-        <div class="title">STREET FIGHT</div>
-        <div class="subtitle">— CLASSIC PC GAME CHARACTERS —</div>
+    <!-- Rotate to landscape prompt (mobile portrait only) -->
+    <div id="rotate-prompt">
+        <div class="icon">📱↻</div>
+        <div class="title">ROTATE TO LANDSCAPE</div>
+        <div class="msg">This fighting game plays best in landscape mode. Rotate your device to begin.</div>
+    </div>
 
-        <div class="char-stage" id="char-stage"></div>
-        <div class="char-name" id="char-name"></div>
-        <div class="char-game" id="char-game"></div>
-        <div class="dots" id="char-dots"></div>
-
-        <div class="msg">
-            This game needs a <strong>keyboard</strong>.<br>
-            Open on desktop to play!
+    <!-- How to play overlay -->
+    <div id="howto">
+        <div class="box">
+            <h2>HOW TO PLAY</h2>
+            <p class="row"><span>Move</span><span class="key">◀ ▶</span></p>
+            <p class="row"><span>Jump</span><span class="key">▲</span></p>
+            <p class="row"><span>Crouch</span><span class="key">▼</span></p>
+            <p class="row"><span>Punch</span><span class="key">P</span></p>
+            <p class="row"><span>Kick</span><span class="key">K</span></p>
+            <p class="row"><span>Special</span><span class="key">S</span></p>
+            <p class="row"><span>Alt Special</span><span class="key">▼ + S</span></p>
+            <p class="row"><span>Block</span><span class="key">BLK (hold)</span></p>
+            <p style="color:#aaa; margin-top:10px; font-size:11px;">Tap a character then FIGHT. First to 2 rounds wins.</p>
+            <button class="close" id="howto-close">GOT IT</button>
         </div>
     </div>
 
+    <!-- On-screen touch controls -->
+    <div id="touch-controls">
+        <div class="dpad">
+            <div class="tc-btn up"    data-tc="up">▲</div>
+            <div class="tc-btn left"  data-tc="left">◀</div>
+            <div class="tc-btn right" data-tc="right">▶</div>
+            <div class="tc-btn down"  data-tc="down">▼</div>
+        </div>
+        <div class="actions">
+            <div class="tc-btn punch"   data-tc="punch">PUNCH</div>
+            <div class="tc-btn kick"    data-tc="kick">KICK</div>
+            <div class="tc-btn special" data-tc="special">SPECIAL</div>
+            <div class="tc-btn block"   data-tc="block">BLOCK</div>
+        </div>
+        <div class="tc-btn menu-btn" data-tc="menu">HELP</div>
+    </div>
+
     <script>
-        const isMobile = /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent)
-            || ('ontouchstart' in window && window.innerWidth < 1024);
+        // ===== Mobile detection =====
+        (function() {
+            const ua = navigator.userAgent;
+            const touch = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+            const isPhoneUA = /Android|iPhone|iPad|iPod|Opera Mini|IEMobile/i.test(ua);
+            window.IS_MOBILE = isPhoneUA || (touch && window.innerWidth < 1024);
 
-        if (isMobile) {
-            document.getElementById('mobile-wall').style.display = 'flex';
+            if (window.IS_MOBILE) document.body.classList.add('mobile');
 
-            const chars = [
-                { key: 'doomguy', name: 'Doomguy',      game: 'Doom' },
-                { key: 'guybrush', name: 'Guybrush',    game: 'Monkey Island' },
-                { key: 'keen',    name: 'Cmdr Keen',    game: 'Commander Keen' },
-                { key: 'mario',   name: 'Mario',        game: 'Super Mario' },
-                { key: 'lara',    name: 'Lara Croft',   game: 'Tomb Raider' },
-                { key: 'prince',  name: 'Prince',       game: 'Prince of Persia' }
-            ];
+            function checkOrientation() {
+                if (!window.IS_MOBILE) return;
+                const portrait = window.innerHeight > window.innerWidth;
+                document.body.classList.toggle('portrait', portrait);
+            }
+            window.addEventListener('resize', checkOrientation);
+            window.addEventListener('orientationchange', checkOrientation);
+            checkOrientation();
+        })();
 
-            // Sprite sheet: 512x384, 64x64 per frame. Display at 3x = 192x192 viewport
-            // Frame 0 = top-left. background-size = 512*3 x 384*3 = 1536x1152
-            const SCALE = 3;
-            const SHEET_W = 512 * SCALE, SHEET_H = 384 * SCALE;
-            const FRAME_W = 64 * SCALE, FRAME_H = 64 * SCALE;
+        // ===== TouchInput global, read by InputManager/Fighter =====
+        window.TouchInput = {
+            p1: {
+                left: false, right: false, down: false,
+                // edge-triggered taps consumed per-frame by InputManager
+                upTap: false, punchTap: false, kickTap: false, specialTap: false,
+                block: false
+            }
+        };
 
-            const stage = document.getElementById('char-stage');
-            const nameEl = document.getElementById('char-name');
-            const gameEl = document.getElementById('char-game');
-            const dotsEl = document.getElementById('char-dots');
+        // ===== Wire touch buttons =====
+        (function() {
+            if (!window.IS_MOBILE) return;
 
-            // Create sprite elements and dots
-            const sprites = chars.map((c, i) => {
-                const el = document.createElement('div');
-                el.className = 'char-sprite';
-                el.style.backgroundImage = `url('assets/sprites/${c.key}.png')`;
-                el.style.backgroundSize = `${SHEET_W}px ${SHEET_H}px`;
-                el.style.backgroundPosition = '0 0';
-                el.style.width = `${FRAME_W}px`;
-                el.style.height = `${FRAME_H}px`;
-                el.style.left = `${(192 - FRAME_W) / 2}px`;
-                el.style.top = `${(192 - FRAME_H) / 2}px`;
-                stage.appendChild(el);
+            const t = window.TouchInput.p1;
+            const container = document.getElementById('touch-controls');
 
-                const dot = document.createElement('div');
-                dot.className = 'dot';
-                dotsEl.appendChild(dot);
-
-                return { el, dot };
-            });
-
-            let current = 0;
-            let animFrame = 0;
-            let animTimer = null;
-
-            function showChar(idx) {
-                // Fade out old
-                sprites[current].el.classList.remove('active');
-                sprites[current].dot.classList.remove('active');
-
-                current = idx;
-                sprites[current].el.classList.add('active');
-                sprites[current].dot.classList.add('active');
-                nameEl.textContent = chars[current].name;
-                gameEl.textContent = chars[current].game;
-
-                // Animate idle frames (0-3) at ~6fps
-                animFrame = 0;
-                clearInterval(animTimer);
-                animTimer = setInterval(() => {
-                    animFrame = (animFrame + 1) % 4;
-                    sprites[current].el.style.backgroundPosition =
-                        `-${animFrame * FRAME_W}px 0px`;
-                }, 160);
+            function holdMap(action, on) {
+                switch (action) {
+                    case 'left':    t.left    = on; break;
+                    case 'right':   t.right   = on; break;
+                    case 'down':    t.down    = on; break;
+                    case 'block':   t.block   = on; break;
+                }
+            }
+            function tapMap(action) {
+                switch (action) {
+                    case 'up':      t.upTap      = true; break;
+                    case 'punch':   t.punchTap   = true; break;
+                    case 'kick':    t.kickTap    = true; break;
+                    case 'special': t.specialTap = true; break;
+                }
             }
 
-            showChar(0);
-            setInterval(() => showChar((current + 1) % chars.length), 2200);
-        }
+            container.querySelectorAll('[data-tc]').forEach(btn => {
+                const action = btn.dataset.tc;
+
+                const press = (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    btn.classList.add('pressed');
+                    if (action === 'menu') {
+                        document.getElementById('howto').classList.add('show');
+                        return;
+                    }
+                    // "up" is also edge-triggered (jump)
+                    tapMap(action);
+                    holdMap(action, true);
+                };
+                const release = (e) => {
+                    btn.classList.remove('pressed');
+                    if (action === 'menu') return;
+                    holdMap(action, false);
+                };
+
+                btn.addEventListener('pointerdown', press);
+                btn.addEventListener('pointerup', release);
+                btn.addEventListener('pointercancel', release);
+                btn.addEventListener('pointerleave', release);
+                // Fallback for iOS Safari quirks
+                btn.addEventListener('touchstart', press, { passive: false });
+                btn.addEventListener('touchend', release);
+            });
+
+            document.getElementById('howto-close').addEventListener('click', () => {
+                document.getElementById('howto').classList.remove('show');
+            });
+
+            // Show how-to on first load
+            window.addEventListener('load', () => {
+                setTimeout(() => {
+                    document.getElementById('howto').classList.add('show');
+                }, 400);
+            });
+        })();
+
+        // Scene-driven toggle: show touch controls only during fights
+        window.showTouchControls = function(show) {
+            if (!window.IS_MOBILE) return;
+            document.body.classList.toggle('show-touch', !!show);
+            if (!show) {
+                // Clear held directional state so movement doesn't persist across scenes
+                const t = window.TouchInput.p1;
+                t.left = t.right = t.down = t.block = false;
+                t.upTap = t.punchTap = t.kickTap = t.specialTap = false;
+            }
+        };
+
+        // Prevent double-tap zoom / pinch on iOS
+        document.addEventListener('gesturestart', e => e.preventDefault());
+        document.addEventListener('dblclick', e => e.preventDefault());
     </script>
 
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.90.0/dist/phaser.min.js"></script>
     <script src="js/fighters/characters.js"></script>
     <script src="js/systems/InputManager.js"></script>
+    <script src="js/systems/AIController.js"></script>
     <script src="js/systems/CombatSystem.js"></script>
     <script src="js/fighters/Fighter.js"></script>
     <script src="js/ui/HUD.js"></script>
