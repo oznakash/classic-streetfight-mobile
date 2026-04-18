@@ -4,6 +4,9 @@ class CharacterSelectScene extends Phaser.Scene {
     }
 
     create() {
+        this.isMobile = !!window.IS_MOBILE;
+        if (window.showTouchControls) window.showTouchControls(false);
+
         this.cameras.main.setBackgroundColor('#0a0a1a');
 
         // Logo
@@ -40,6 +43,17 @@ class CharacterSelectScene extends Phaser.Scene {
                 fontSize: '7px', fontFamily: 'monospace', color: '#666'
             }).setOrigin(0.5);
 
+            // Tap-to-select on mobile
+            bg.setInteractive({ useHandCursor: true });
+            bg.on('pointerdown', () => {
+                if (this.isMobile) {
+                    if (!this.p1Confirmed) {
+                        this.p1Selection = i;
+                        this.updateCursors();
+                    }
+                }
+            });
+
             this.cards.push({ bg, preview, name, x, y });
         });
 
@@ -50,34 +64,44 @@ class CharacterSelectScene extends Phaser.Scene {
         this.p1Label = this.add.text(0, 0, 'P1', {
             fontSize: '12px', fontFamily: 'monospace', color: '#4488ff', fontStyle: 'bold'
         }).setOrigin(0.5);
-        this.p2Label = this.add.text(0, 0, 'P2', {
+        this.p2Label = this.add.text(0, 0, this.isMobile ? 'CPU' : 'P2', {
             fontSize: '12px', fontFamily: 'monospace', color: '#ff4444', fontStyle: 'bold'
         }).setOrigin(0.5);
 
-        // Controls display
+        // Controls display (desktop only; mobile shows tap instructions)
         const ctrlY = 300;
         const ctrlStyle = { fontSize: '9px', fontFamily: 'monospace', color: '#555' };
         const p1Style = { fontSize: '10px', fontFamily: 'monospace', color: '#4488ff' };
         const p2Style = { fontSize: '10px', fontFamily: 'monospace', color: '#ff4444' };
 
-        // P1 controls (left side)
-        this.add.text(150, ctrlY, '-- P1 Controls --', p1Style).setOrigin(0.5);
-        this.add.text(150, ctrlY + 16, 'Move:  Arrow Keys', ctrlStyle).setOrigin(0.5);
-        this.add.text(150, ctrlY + 28, 'Punch: Z    Kick: X', ctrlStyle).setOrigin(0.5);
-        this.add.text(150, ctrlY + 40, 'Special: C  (+ Down = Alt)', ctrlStyle).setOrigin(0.5);
-        this.add.text(150, ctrlY + 52, 'Block: Back + Down', ctrlStyle).setOrigin(0.5);
+        if (!this.isMobile) {
+            // P1 controls (left side)
+            this.add.text(150, ctrlY, '-- P1 Controls --', p1Style).setOrigin(0.5);
+            this.add.text(150, ctrlY + 16, 'Move:  Arrow Keys', ctrlStyle).setOrigin(0.5);
+            this.add.text(150, ctrlY + 28, 'Punch: Z    Kick: X', ctrlStyle).setOrigin(0.5);
+            this.add.text(150, ctrlY + 40, 'Special: C  (+ Down = Alt)', ctrlStyle).setOrigin(0.5);
+            this.add.text(150, ctrlY + 52, 'Block: Back + Down', ctrlStyle).setOrigin(0.5);
 
-        // P2 controls (right side)
-        this.add.text(650, ctrlY, '-- P2 Controls --', p2Style).setOrigin(0.5);
-        this.add.text(650, ctrlY + 16, 'Move:  W A S D', ctrlStyle).setOrigin(0.5);
-        this.add.text(650, ctrlY + 28, 'Punch: F    Kick: G', ctrlStyle).setOrigin(0.5);
-        this.add.text(650, ctrlY + 40, 'Special: H  (+ S = Alt)', ctrlStyle).setOrigin(0.5);
-        this.add.text(650, ctrlY + 52, 'Block: Back + S', ctrlStyle).setOrigin(0.5);
+            // P2 controls (right side)
+            this.add.text(650, ctrlY, '-- P2 Controls --', p2Style).setOrigin(0.5);
+            this.add.text(650, ctrlY + 16, 'Move:  W A S D', ctrlStyle).setOrigin(0.5);
+            this.add.text(650, ctrlY + 28, 'Punch: F    Kick: G', ctrlStyle).setOrigin(0.5);
+            this.add.text(650, ctrlY + 40, 'Special: H  (+ S = Alt)', ctrlStyle).setOrigin(0.5);
+            this.add.text(650, ctrlY + 52, 'Block: Back + S', ctrlStyle).setOrigin(0.5);
 
-        // Select instructions
-        this.add.text(400, ctrlY + 6, 'Select:', { fontSize: '10px', fontFamily: 'monospace', color: '#aaa' }).setOrigin(0.5);
-        this.add.text(400, ctrlY + 20, 'P1: Arrows + SPACE', p1Style).setOrigin(0.5);
-        this.add.text(400, ctrlY + 34, 'P2: A/D + ENTER', p2Style).setOrigin(0.5);
+            // Select instructions
+            this.add.text(400, ctrlY + 6, 'Select:', { fontSize: '10px', fontFamily: 'monospace', color: '#aaa' }).setOrigin(0.5);
+            this.add.text(400, ctrlY + 20, 'P1: Arrows + SPACE', p1Style).setOrigin(0.5);
+            this.add.text(400, ctrlY + 34, 'P2: A/D + ENTER', p2Style).setOrigin(0.5);
+        } else {
+            // Mobile: tap instructions
+            this.add.text(400, ctrlY - 10, 'TAP A FIGHTER', {
+                fontSize: '12px', fontFamily: 'monospace', color: '#ffcc00', fontStyle: 'bold'
+            }).setOrigin(0.5);
+            this.add.text(400, ctrlY + 6, 'then hit FIGHT — CPU picks an opponent', {
+                fontSize: '9px', fontFamily: 'monospace', color: '#888'
+            }).setOrigin(0.5);
+        }
 
         // Character stats display
         this.p1Stats = this.add.text(150, ctrlY + 70, '', {
@@ -91,6 +115,28 @@ class CharacterSelectScene extends Phaser.Scene {
         this.readyText = this.add.text(400, 420, '', {
             fontSize: '16px', fontFamily: 'monospace', color: '#ffcc00', fontStyle: 'bold'
         }).setOrigin(0.5);
+
+        // FIGHT button (mobile)
+        if (this.isMobile) {
+            const fx = 400, fy = ctrlY + 80;
+            this.fightBtnBg = this.add.rectangle(fx, fy, 160, 44, 0xff3300)
+                .setStrokeStyle(2, 0xffcc00)
+                .setInteractive({ useHandCursor: true });
+            this.fightBtnText = this.add.text(fx, fy, 'FIGHT!', {
+                fontSize: '18px', fontFamily: 'monospace', color: '#fff', fontStyle: 'bold'
+            }).setOrigin(0.5);
+            this.fightBtnBg.on('pointerdown', () => {
+                if (this.p1Confirmed) return;
+                this.p1Confirmed = true;
+                // CPU picks a different character randomly
+                const others = CHARACTER_KEYS
+                    .map((_, idx) => idx)
+                    .filter(idx => idx !== this.p1Selection);
+                this.p2Selection = others[Math.floor(Math.random() * others.length)];
+                this.p2Confirmed = true;
+                this.updateCursors();
+            });
+        }
 
         // Input - P1: arrows + SPACE, P2: A/D + ENTER
         this.keys = {
@@ -123,7 +169,7 @@ class CharacterSelectScene extends Phaser.Scene {
             }
         }
 
-        if (!this.p2Confirmed) {
+        if (!this.p2Confirmed && !this.isMobile) {
             if (Phaser.Input.Keyboard.JustDown(this.keys.p2Left)) {
                 this.p2Selection = (this.p2Selection - 1 + CHARACTER_KEYS.length) % CHARACTER_KEYS.length;
                 this.updateCursors();
@@ -187,27 +233,46 @@ class CharacterSelectScene extends Phaser.Scene {
         const p2Card = this.cards[this.p2Selection];
 
         this.p1Cursor.setPosition(p1Card.x - 8, p1Card.y - 100);
-        this.p2Cursor.setPosition(p2Card.x - 8, p2Card.y + 95);
         this.p1Label.setPosition(p1Card.x, p1Card.y - 110);
-        this.p2Label.setPosition(p2Card.x, p2Card.y + 110);
+
+        if (this.isMobile) {
+            // Hide the CPU cursor until P1 confirms (CPU pick is random at confirm time)
+            const show = this.p1Confirmed === true || this.p1Confirmed === 'started';
+            this.p2Cursor.setVisible(show);
+            this.p2Label.setVisible(show);
+            if (show) {
+                this.p2Cursor.setPosition(p2Card.x - 8, p2Card.y + 95);
+                this.p2Label.setPosition(p2Card.x, p2Card.y + 110);
+            }
+        } else {
+            this.p2Cursor.setPosition(p2Card.x - 8, p2Card.y + 95);
+            this.p2Label.setPosition(p2Card.x, p2Card.y + 110);
+        }
 
         this.cards.forEach((card, i) => {
             let strokeColor = 0x333366;
             let strokeWidth = 2;
             if (i === this.p1Selection) { strokeColor = 0x4488ff; strokeWidth = this.p1Confirmed ? 3 : 2; }
-            if (i === this.p2Selection) { strokeColor = 0xff4444; strokeWidth = this.p2Confirmed ? 3 : 2; }
-            if (i === this.p1Selection && i === this.p2Selection) { strokeColor = 0xff88ff; strokeWidth = 3; }
+            if (!this.isMobile || this.p2Confirmed) {
+                if (i === this.p2Selection) { strokeColor = 0xff4444; strokeWidth = this.p2Confirmed ? 3 : 2; }
+                if (i === this.p1Selection && i === this.p2Selection) { strokeColor = 0xff88ff; strokeWidth = 3; }
+            }
             card.bg.setStrokeStyle(strokeWidth, strokeColor);
         });
 
         const c1 = CHARACTERS[CHARACTER_KEYS[this.p1Selection]];
-        const c2 = CHARACTERS[CHARACTER_KEYS[this.p2Selection]];
         this.p1Stats.setText(`HP:${c1.health} SPD:${c1.speed} | ${c1.moves.special1.name} / ${c1.moves.special2.name}`);
-        this.p2Stats.setText(`HP:${c2.health} SPD:${c2.speed} | ${c2.moves.special1.name} / ${c2.moves.special2.name}`);
+
+        if (!this.isMobile || this.p2Confirmed) {
+            const c2 = CHARACTERS[CHARACTER_KEYS[this.p2Selection]];
+            this.p2Stats.setText(`HP:${c2.health} SPD:${c2.speed} | ${c2.moves.special1.name} / ${c2.moves.special2.name}`);
+        } else {
+            this.p2Stats.setText('CPU: ???');
+        }
 
         let ready = '';
         if (this.p1Confirmed === true) ready += 'P1 READY! ';
-        if (this.p2Confirmed === true) ready += 'P2 READY!';
+        if (this.p2Confirmed === true) ready += (this.isMobile ? 'CPU READY!' : 'P2 READY!');
         this.readyText.setText(ready);
     }
 }

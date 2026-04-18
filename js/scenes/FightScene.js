@@ -29,10 +29,14 @@ class FightScene extends Phaser.Scene {
         // Systems
         this.inputManager = new InputManager(this);
         this.combatSystem = new CombatSystem(this);
+        this.isMobile = !!window.IS_MOBILE;
 
         // Fighters
         this.fighter1 = new Fighter(this, 200, 350, this.p1Char, 0);
         this.fighter2 = new Fighter(this, 600, 350, this.p2Char, 1);
+
+        // On mobile: CPU controls P2
+        this.ai = this.isMobile ? new AIController(this.fighter2, this.fighter1) : null;
         this.fighter1.sprite.setDepth(2);
         this.fighter2.sprite.setDepth(2);
 
@@ -61,6 +65,12 @@ class FightScene extends Phaser.Scene {
 
         // Sound effects (Web Audio)
         this.sfx = this.createSFX();
+
+        // Show touch overlay during fights (mobile only)
+        if (window.showTouchControls) window.showTouchControls(true);
+        this.events.once('shutdown', () => {
+            if (window.showTouchControls) window.showTouchControls(false);
+        });
 
         // Start first round
         this.startRound();
@@ -175,9 +185,9 @@ class FightScene extends Phaser.Scene {
         this.roundTimer -= delta / 1000;
         this.hud.updateTimer(this.roundTimer);
 
-        // Get input
+        // Get input (CPU drives P2 on mobile)
         const p1Input = this.inputManager.getInput('p1');
-        const p2Input = this.inputManager.getInput('p2');
+        const p2Input = this.ai ? this.ai.getInput(delta) : this.inputManager.getInput('p2');
 
         // Update fighters
         this.fighter1.update(delta, p1Input, this.fighter2);

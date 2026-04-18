@@ -38,16 +38,29 @@ class InputManager {
 
     getInput(player) {
         const k = this.keys[player];
+        const t = (window.TouchInput && window.TouchInput[player]) || null;
+
+        const touchLeft = !!(t && t.left);
+        const touchRight = !!(t && t.right);
+        const touchDown = !!(t && t.down);
+        const touchBlock = !!(t && t.block);
+
+        const consume = (name) => {
+            if (t && t[name]) { t[name] = false; return true; }
+            return false;
+        };
+
         return {
-            left: k.left.isDown,
-            right: k.right.isDown,
-            up: Phaser.Input.Keyboard.JustDown(k.up),
-            down: k.down.isDown,
-            punch: Phaser.Input.Keyboard.JustDown(k.punch),
-            kick: Phaser.Input.Keyboard.JustDown(k.kick),
-            special: Phaser.Input.Keyboard.JustDown(k.special),
-            holdLeft: k.left.isDown,
-            holdRight: k.right.isDown
+            left: k.left.isDown || touchLeft,
+            right: k.right.isDown || touchRight,
+            up: Phaser.Input.Keyboard.JustDown(k.up) || consume('upTap'),
+            down: k.down.isDown || touchDown,
+            punch: Phaser.Input.Keyboard.JustDown(k.punch) || consume('punchTap'),
+            kick: Phaser.Input.Keyboard.JustDown(k.kick) || consume('kickTap'),
+            special: Phaser.Input.Keyboard.JustDown(k.special) || consume('specialTap'),
+            holdLeft: k.left.isDown || touchLeft,
+            holdRight: k.right.isDown || touchRight,
+            block: touchBlock
         };
     }
 

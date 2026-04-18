@@ -58,8 +58,8 @@ class Fighter {
             this.facingRight = this.sprite.x < opponent.sprite.x;
         }
 
-        // Determine if blocking (holding away from opponent)
-        const holdingBack = this.facingRight ? input.holdLeft : input.holdRight;
+        // Determine if blocking (holding away from opponent, or dedicated block button)
+        const holdingBack = (this.facingRight ? input.holdLeft : input.holdRight) || !!input.block;
 
         // Hitstun countdown
         if (this.hitstunTimer > 0) {
@@ -77,8 +77,8 @@ class Fighter {
             case 'WALK':
                 body.setVelocityX(0);
 
-                // Block only when holding back + down
-                if (holdingBack && input.down && body.blocked.down) {
+                // Block when holding back+down, or when dedicated block button held (touch)
+                if (body.blocked.down && ((holdingBack && input.down) || input.block)) {
                     this.setState('BLOCK');
                     break;
                 }
