@@ -2,7 +2,7 @@
 
 ![Street Fight Banner](assets/readme/banner.png)
 
-A browser-based 2-player local multiplayer fighting game where iconic classic PC game characters battle it out. Built with Phaser 3 — no build tools required.
+A browser-based fighting game where iconic classic PC game characters battle it out. **Local 2-player on desktop, single-player vs CPU on mobile/iOS.** Built with Phaser 3 — no build tools required.
 
 ## Screenshots
 
@@ -33,6 +33,8 @@ Then open `http://localhost:8080` (or whatever port) in a browser.
 
 ## Controls
 
+### Desktop (keyboard, 2-player local)
+
 | Action | Player 1 | Player 2 |
 |--------|----------|----------|
 | Move | Arrow Keys | W A S D |
@@ -47,15 +49,34 @@ Then open `http://localhost:8080` (or whatever port) in a browser.
 
 **Victory Screen:** SPACE/ENTER for character select, Z/F for rematch.
 
+### Mobile / iOS (touch, vs CPU)
+
+On phones the game switches to single-player: you tap a fighter, tap **FIGHT**, and the CPU picks an opponent.
+
+| Action | Touch |
+|--------|-------|
+| Move left / right | ◀ ▶ on the D-pad |
+| Jump | ▲ (tap) |
+| Crouch | ▼ (hold) |
+| Punch / Kick / Special | Action buttons on the right |
+| Alt Special | Hold ▼ + tap SPECIAL |
+| Block | Hold BLK |
+| Help / controls | HELP button (top-right) |
+
+- Best played in **landscape** — a rotate prompt appears in portrait.
+- A how-to-play overlay is shown on first load.
+- Character Select and Victory screens are fully tappable (FIGHT / REMATCH / CHAR SELECT buttons).
+
 ## Game Mechanics
 
 - **Best of 3 rounds** with 99-second timer
-- **Blocking** (hold back + down) reduces damage to 15% and knockback to 30%
+- **Blocking** (hold back + down, or dedicated BLK button on mobile) reduces damage to 15% and knockback to 30%
 - **Holding back** while walking also passively blocks incoming attacks
 - **Frame data** per move: startup, active (hitbox on), recovery frames
 - **Projectiles**: max 1 per player on screen, with sprite and glow effects
 - **Auto-facing**: fighters always face each other
 - **KO effects**: slow-motion, screen flash, camera shake
+- **CPU opponent (mobile)**: simple AI that approaches, attacks in range, throws occasional specials, and reactively blocks
 
 ## Tech Stack
 
@@ -64,7 +85,8 @@ Then open `http://localhost:8080` (or whatever port) in a browser.
 - Arcade physics for gravity/collisions
 - Synthesized sound effects via Web Audio API
 - AI-generated pixel art sprites (64x64 frames, 8x6 grid sprite sheets)
-- Resolution: 800x450, pixelArt mode
+- Resolution: 800x450, pixelArt mode, `Phaser.Scale.FIT` (auto-scales to device)
+- HTML overlay for mobile touch controls (no extra dependencies)
 
 ## Project Structure
 
@@ -82,7 +104,8 @@ streetfight/
       Fighter.js              # Sprite-based state machine + combat
       characters.js           # All 6 character definitions (stats, moves)
     systems/
-      InputManager.js         # Key bindings for both players
+      InputManager.js         # Key bindings + touch input merge for both players
+      AIController.js         # CPU opponent (used for P2 on mobile)
       CombatSystem.js         # Hitbox checks, damage, projectiles, effects
     ui/
       HUD.js                  # Health bars, timer, round indicators
