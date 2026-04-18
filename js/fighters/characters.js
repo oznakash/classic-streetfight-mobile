@@ -198,11 +198,10 @@ const CHARACTERS = {
                 active: 5,
                 recovery: 10,
                 isProjectile: true,
-                projectileSpeed: 270,
+                projectileSpeed: 320,
                 projectileColor: 0xff6600,
                 projectileSize: 8,
-                projectileSprite: 'proj_fireball',
-                bounce: true
+                projectileSprite: 'proj_fireball'
             },
             special2: {
                 name: 'Stomp',
