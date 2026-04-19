@@ -103,7 +103,7 @@ class CombatSystem {
         }
         if (move.bounce) {
             proj.body.setBounce(1, 0.8);
-            proj.body.setVelocityY(100);
+            proj.body.setVelocityY(-220);
             proj.body.setAllowGravity(true);
             proj.bounceCount = 0;
             proj.maxBounces = 3;
