@@ -55,12 +55,12 @@ class VictoryScene extends Phaser.Scene {
             ease: 'Sine.easeInOut'
         });
 
-        // Confetti
+        // Confetti (non-interactive, lower depth so buttons stay on top)
         for (let i = 0; i < 30; i++) {
             const px = 100 + Math.random() * 600;
             const py = -20 - Math.random() * 100;
             const colors = [0xff4444, 0x44ff44, 0x4444ff, 0xffff44, 0xff44ff, 0x44ffff];
-            const p = this.add.rectangle(px, py, 6, 6, colors[Math.floor(Math.random() * colors.length)]);
+            const p = this.add.rectangle(px, py, 6, 6, colors[Math.floor(Math.random() * colors.length)]).setDepth(1);
             this.tweens.add({
                 targets: p,
                 y: 500,
@@ -73,18 +73,15 @@ class VictoryScene extends Phaser.Scene {
             });
         }
 
-        // Tap buttons (shown on both; keyboard also works on desktop)
-        this.makeButton(260, 385, 'REMATCH', 0xff3300, () => {
-            this.scene.start('FightScene', { p1: this.p1Char, p2: this.p2Char });
-        });
-        this.makeButton(540, 385, 'CHAR SELECT', 0x4488ff, () => {
-            this.scene.start('CharacterSelectScene');
-        });
+        // Tap buttons — larger hit target, moved up from the screen edge so
+        // iOS home indicator / overlay zones can't swallow taps.
+        this.makeButton(240, 360, 'REMATCH', 0xff3300, () => this.goto('FightScene'));
+        this.makeButton(560, 360, 'CHAR SELECT', 0x4488ff, () => this.goto('CharacterSelectScene'));
 
         if (!this.isMobile) {
             this.add.text(400, 420, 'SPACE/ENTER: Select   •   Z/F: Rematch', {
                 fontSize: '11px', fontFamily: 'monospace', color: '#777'
-            }).setOrigin(0.5);
+            }).setOrigin(0.5).setDepth(1000);
         }
 
         // Input
@@ -96,33 +93,44 @@ class VictoryScene extends Phaser.Scene {
         this.fKey = this.input.keyboard.addKey('F');
 
         this.canProceed = false;
-        this.time.delayedCall(1000, () => { this.canProceed = true; });
+        this.transitioning = false;
+        this.time.delayedCall(400, () => { this.canProceed = true; });
+    }
+
+    goto(sceneKey) {
+        if (!this.canProceed || this.transitioning) return;
+        this.transitioning = true;
+        this.tweens.killAll();
+        if (sceneKey === 'FightScene') {
+            this.scene.start('FightScene', { p1: this.p1Char, p2: this.p2Char });
+        } else {
+            this.scene.start('CharacterSelectScene');
+        }
     }
 
     makeButton(x, y, label, color, onTap) {
-        const bg = this.add.rectangle(x, y, 200, 40, color)
-            .setStrokeStyle(2, 0xffffff)
-            .setInteractive({ useHandCursor: true });
+        const w = 240, h = 56;
+        const bg = this.add.rectangle(x, y, w, h, color)
+            .setStrokeStyle(3, 0xffffff)
+            .setInteractive({ useHandCursor: true })
+            .setDepth(1000);
         const txt = this.add.text(x, y, label, {
-            fontSize: '14px', fontFamily: 'monospace', color: '#fff', fontStyle: 'bold'
-        }).setOrigin(0.5);
-        bg.on('pointerdown', () => {
-            if (!this.canProceed) return;
-            onTap();
-        });
-        bg.on('pointerover', () => bg.setScale(1.05));
-        bg.on('pointerout', () => bg.setScale(1));
+            fontSize: '18px', fontFamily: 'monospace', color: '#fff', fontStyle: 'bold'
+        }).setOrigin(0.5).setDepth(1001);
+        // Enlarge hit area beyond the visual rectangle so finger-sized taps register.
+        bg.input.hitArea.setTo(-20, -20, w + 40, h + 40);
+        bg.on('pointerdown', onTap);
         return { bg, txt };
     }
 
     update() {
-        if (!this.canProceed) return;
+        if (!this.canProceed || this.transitioning) return;
 
         if (Phaser.Input.Keyboard.JustDown(this.spaceKey) || Phaser.Input.Keyboard.JustDown(this.enterKey)) {
-            this.scene.start('CharacterSelectScene');
+            this.goto('CharacterSelectScene');
         }
         if (Phaser.Input.Keyboard.JustDown(this.zKey) || Phaser.Input.Keyboard.JustDown(this.fKey)) {
-            this.scene.start('FightScene', { p1: this.p1Char, p2: this.p2Char });
+            this.goto('FightScene');
         }
     }
 }
